@@ -1,0 +1,114 @@
+{
+    "Applications": [
+        {
+        "Name": "Spark"
+        }
+    ],
+    "BootstrapActions": [
+        {
+        "Name": "bootstrap",
+        "ScriptBootstrapAction": {
+            "Path": "s3://streaming-guide/scripts/bootstrap.sh"
+        }
+        }
+    ],
+    "Configurations": [
+        {
+        "Classification": "capacity-scheduler",
+        "Properties": {
+            "yarn.scheduler.capacity.resource-calculator": "org.apache.hadoop.yarn.util.resource.DominantResourceCalculator"
+        }
+        },
+        {
+        "Classification": "spark-defaults",
+        "Properties": {
+            "spark.streaming.dynamicAllocation.enabled": "true",
+            "spark.streaming.dynamicAllocation.minExecutors": "1",
+            "spark.streaming.dynamicAllocation.maxExecutors": "2",
+            "spark.streaming.dynamicAllocation.initialExecutors": "1"
+        }
+        }
+    ],
+    "Instances": {
+        "Ec2SubnetId": "<your subnet>",
+        "EmrManagedMasterSecurityGroup": "<your master node sg>",
+        "EmrManagedSlaveSecurityGroup": "<your slave nodes sg>",
+        "ServiceAccessSecurityGroup": "<your service access sg>",
+        "InstanceFleets": [
+        {
+            "InstanceFleetType": "MASTER",
+            "TargetOnDemandCapacity": 1,
+            "TargetSpotCapacity": 0,
+            "InstanceTypeConfigs": [
+            {
+                "WeightedCapacity": 1,
+                "InstanceType": "c6g.xlarge",
+                "BidPriceAsPercentageOfOnDemandPrice": 100,
+                "EbsConfiguration": {
+                "EbsBlockDeviceConfigs": [
+                    {
+                    "VolumeSpecification": {
+                        "SizeInGB": 40,
+                        "VolumeType": "gp3"
+                    },
+                    "VolumesPerInstance": 1
+                    }
+                ]
+                }
+            }
+            ],
+            "Name": "Primary"
+        },
+        {
+            "InstanceFleetType": "CORE",
+            "TargetOnDemandCapacity": 1,
+            "TargetSpotCapacity": 0,
+            "InstanceTypeConfigs": [
+            {
+                "WeightedCapacity": 1,
+                "InstanceType": "c6g.xlarge",
+                "BidPriceAsPercentageOfOnDemandPrice": 100,
+                "EbsConfiguration": {
+                "EbsBlockDeviceConfigs": [
+                    {
+                    "VolumeSpecification": {
+                        "SizeInGB": 40,
+                        "VolumeType": "gp3"
+                    },
+                    "VolumesPerInstance": 1
+                    }
+                ]
+                }
+            }
+            ],
+            "Name": "Core"
+        }
+        ],
+        "KeepJobFlowAliveWhenNoSteps": false,
+        "TerminationProtected": false
+    },
+    "Steps": [
+        {
+        "Name": "Spark Streaming Job",
+        "ActionOnFailure": "CONTINUE",
+        "HadoopJarStep": {
+            "Jar": "command-runner.jar",
+            "Args": [
+            "bash", "-c",
+            "Bucket=streaming-guide ConsumerTopics=input_data MskBrokers=<your msk brokes> /tmp/main.py"
+            ]
+        }
+        }
+    ],
+    "SecurityConfiguration": "StreamingSecurityConfig",
+    "JobFlowRole": "streaming-emr-profile",
+    "LogUri": "s3://streaming-guide/logs/",
+    "Name": "STREAMING",
+    "ReleaseLabel": "emr-7.1.0",
+    "ServiceRole": "arn:aws:iam::<acc-id>:role/streaming-role",
+    "VisibleToAllUsers": true,
+    "ScaleDownBehavior": "TERMINATE_AT_TASK_COMPLETION",
+    "AutoTerminationPolicy": {
+        "IdleTimeout": 3600
+    }
+}
